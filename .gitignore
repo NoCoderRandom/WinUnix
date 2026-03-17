@@ -25,3 +25,6 @@ desktop.ini
 .vscode/
 *.suo
 *.user
+
+# Release archives (distributed via GitHub Releases, not git)
+releases/
