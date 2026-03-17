@@ -1,0 +1,27 @@
+# Compiled binaries
+bin/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Build logs
+*_build.log
+
+# Old / temporary build scripts
+build2.bat
+
+# Root-level cpp files (sources are in src/)
+/*.cpp
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+*.suo
+*.user
