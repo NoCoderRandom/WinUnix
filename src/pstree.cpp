@@ -62,6 +62,16 @@ static std::string get_user(DWORD pid) {
 }
 
 int main(int argc, char* argv[]) {
+    // Set console to UTF-8 so box-drawing characters render correctly
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
+    // Enable VT processing for proper rendering
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    if (GetConsoleMode(hOut, &mode))
+        SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
     bool show_pids    = false;
     bool sort_by_pid  = false;
     bool use_ascii    = false;
@@ -156,13 +166,7 @@ int main(int argc, char* argv[]) {
     const char* branch_end = use_ascii ? "`-" : "\xe2\x94\x94\xe2\x94\x80";
     const char* vert_bar   = use_ascii ? "|"  : "\xe2\x94\x82";
 
-    // Enable VT output for color highlights
-    if (highlight_pid) {
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        DWORD mode = 0;
-        if (GetConsoleMode(hOut, &mode))
-            SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-    }
+    // VT processing already enabled at startup
 
     // Recursive tree printer
     // own_prefix:   prefix printed on the same line as this node's label

@@ -337,10 +337,9 @@ int main(int argc, char* argv[]) {
         if (!no_header)
             printf("%-12s %6s %5s %5s %8s %8s %4s %4s %-8s %8s %s\n",
                 "USER", "PID", "%CPU", "%MEM", "VSZ", "RSS", "TTY", "STAT", "START", "TIME", "COMMAND");
+        MEMORYSTATUSEX ms = {}; ms.dwLength = sizeof(ms);
+        GlobalMemoryStatusEx(&ms);
         for (auto* p : shown) {
-            // %MEM = RSS / total_phys * 100
-            MEMORYSTATUSEX ms = {}; ms.dwLength = sizeof(ms);
-            GlobalMemoryStatusEx(&ms);
             double mem_pct = ms.ullTotalPhys ? (double)(p->mem_kb * 1024) / ms.ullTotalPhys * 100.0 : 0.0;
             printf("%-12s %6lu %5.1f %5.1f %8llu %8llu %4s %4c %-8s %8s %s\n",
                 p->user.c_str(), (unsigned long)p->pid,

@@ -254,6 +254,10 @@ int main(int argc, char* argv[]) {
 
     g_batch = batch;
 
+    // Set console to UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
     // In batch mode use binary stdout to avoid CRLF on Windows
     if (batch) _setmode(_fileno(stdout), _O_BINARY);
 

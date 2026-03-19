@@ -52,10 +52,10 @@ static unsigned long long to_blocks(unsigned long long bytes, Unit unit) {
     }
 }
 
-static const char* get_fs_type(const char* root) {
+static std::string get_fs_type_str(const char* root) {
     char fs_name[256] = {};
     if (GetVolumeInformationA(root, NULL, 0, NULL, NULL, NULL, fs_name, sizeof(fs_name)))
-        return _strdup(fs_name);
+        return fs_name;
     return "unknown";
 }
 
@@ -80,24 +80,54 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         char* a = argv[i];
         if (strcmp(a, "--help") == 0)         { usage(); return 0; }
-        else if (strcmp(a, "-a") == 0 || strcmp(a, "--all") == 0) opt_all = true;
-        else if (strcmp(a, "-h") == 0 || strcmp(a, "--human-readable") == 0) { opt_h = true; unit = HUMAN_1024; }
-        else if (strcmp(a, "-H") == 0 || strcmp(a, "--si") == 0)  { opt_H = true; unit = HUMAN_SI; }
-        else if (strcmp(a, "-i") == 0 || strcmp(a, "--inodes") == 0) opt_i = true;
-        else if (strcmp(a, "-k") == 0) { opt_k = true; unit = BLOCK_1K; }
-        else if (strcmp(a, "-l") == 0 || strcmp(a, "--local") == 0) opt_l = true;
-        else if (strcmp(a, "-T") == 0 || strcmp(a, "--print-type") == 0) opt_T = true;
-        else if (strcmp(a, "-P") == 0 || strcmp(a, "--portability") == 0) opt_P = true;
-        else if ((strcmp(a, "-t") == 0 || strcmp(a, "--type") == 0) && i+1 < argc)
+        else if (strcmp(a, "--all") == 0) opt_all = true;
+        else if (strcmp(a, "--human-readable") == 0) { opt_h = true; unit = HUMAN_1024; }
+        else if (strcmp(a, "--si") == 0)  { opt_H = true; unit = HUMAN_SI; }
+        else if (strcmp(a, "--inodes") == 0) opt_i = true;
+        else if (strcmp(a, "--local") == 0) opt_l = true;
+        else if (strcmp(a, "--print-type") == 0) opt_T = true;
+        else if (strcmp(a, "--portability") == 0) opt_P = true;
+        else if (strcmp(a, "--type") == 0 && i+1 < argc)
             filter_types.push_back(argv[++i]);
         else if (strncmp(a, "--type=", 7) == 0) filter_types.push_back(a+7);
-        else if ((strcmp(a, "-x") == 0 || strcmp(a, "--exclude-type") == 0) && i+1 < argc)
+        else if (strcmp(a, "--exclude-type") == 0 && i+1 < argc)
             exclude_types.push_back(argv[++i]);
         else if (strncmp(a, "--exclude-type=", 15) == 0) exclude_types.push_back(a+15);
-        else if (strncmp(a, "-B", 2) == 0 || strncmp(a, "--block-size=", 13) == 0) {
-            const char* s = (a[1]=='B' && strlen(a)>2) ? a+2 : (strncmp(a,"--block-size=",13)==0 ? a+13 : NULL);
-            if (!s && i+1 < argc) s = argv[++i];
-            if (s) block_size = (unsigned long long)atoll(s);
+        else if (strncmp(a, "--block-size=", 13) == 0) {
+            block_size = (unsigned long long)atoll(a+13);
+        }
+        else if (a[0] == '-' && a[1] != '-') {
+            // Handle combined short flags: -Th, -ahT, etc.
+            bool err = false;
+            for (int j = 1; a[j] && !err; j++) {
+                switch (a[j]) {
+                    case 'a': opt_all = true; break;
+                    case 'h': opt_h = true; unit = HUMAN_1024; break;
+                    case 'H': opt_H = true; unit = HUMAN_SI; break;
+                    case 'i': opt_i = true; break;
+                    case 'k': opt_k = true; unit = BLOCK_1K; break;
+                    case 'l': opt_l = true; break;
+                    case 'T': opt_T = true; break;
+                    case 'P': opt_P = true; break;
+                    case 't':
+                        if (a[j+1]) { filter_types.push_back(a+j+1); j=(int)strlen(a)-1; }
+                        else if (i+1 < argc) filter_types.push_back(argv[++i]);
+                        break;
+                    case 'x':
+                        if (a[j+1]) { exclude_types.push_back(a+j+1); j=(int)strlen(a)-1; }
+                        else if (i+1 < argc) exclude_types.push_back(argv[++i]);
+                        break;
+                    case 'B':
+                        if (a[j+1]) { block_size=(unsigned long long)atoll(a+j+1); j=(int)strlen(a)-1; }
+                        else if (i+1 < argc) block_size=(unsigned long long)atoll(argv[++i]);
+                        break;
+                    default:
+                        fprintf(stderr, "df: invalid option -- '%c'\n", a[j]);
+                        fprintf(stderr, "Try 'df --help' for more information.\n");
+                        err = true;
+                }
+            }
+            if (err) return 1;
         }
         else if (a[0] != '-') paths.push_back(a);
         else {
@@ -129,17 +159,17 @@ int main(int argc, char* argv[]) {
         UINT dtype = GetDriveTypeA(root);
         if (opt_l && dtype == DRIVE_REMOTE) return;
 
-        const char* fstype = get_fs_type(root);
+        std::string fstype = get_fs_type_str(root);
 
         // filter by type
         if (!filter_types.empty()) {
             bool found = false;
             for (auto& t : filter_types)
-                if (_stricmp(t.c_str(), fstype) == 0) { found = true; break; }
+                if (_stricmp(t.c_str(), fstype.c_str()) == 0) { found = true; break; }
             if (!found) return;
         }
         for (auto& t : exclude_types)
-            if (_stricmp(t.c_str(), fstype) == 0) return;
+            if (_stricmp(t.c_str(), fstype.c_str()) == 0) return;
 
         unsigned long long total = totalBytes.QuadPart;
         unsigned long long avail = freeBytesAvail.QuadPart;
@@ -181,7 +211,7 @@ int main(int argc, char* argv[]) {
 
         if (opt_T) {
             printf("%-20s %-10s %12s %12s %12s %5s %s\n",
-                root_trimmed, fstype, size_str, used_str, avail_str, pct_str, mount);
+                root_trimmed, fstype.c_str(), size_str, used_str, avail_str, pct_str, mount);
         } else {
             printf("%-20s %12s %12s %12s %5s %s\n",
                 root_trimmed, size_str, used_str, avail_str, pct_str, mount);

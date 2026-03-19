@@ -163,26 +163,51 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         char* a = argv[i];
         if (strcmp(a, "--help") == 0)        { usage(); return 0; }
-        else if (strcmp(a, "-b") == 0 || strcmp(a, "--bytes") == 0) unit = BYTES;
-        else if (strcmp(a, "-k") == 0 || strcmp(a, "--kilo") == 0)  unit = KILO;
-        else if (strcmp(a, "-m") == 0 || strcmp(a, "--mega") == 0)  unit = MEGA;
-        else if (strcmp(a, "-g") == 0 || strcmp(a, "--giga") == 0)  unit = GIGA;
-        else if (strcmp(a, "--tera") == 0)   unit = TERA;
-        else if (strcmp(a, "--peta") == 0)   unit = PETA;
-        else if (strcmp(a, "-h") == 0 || strcmp(a, "--human") == 0) unit = HUMAN;
-        else if (strcmp(a, "--si") == 0)     si = true;
-        else if (strcmp(a, "-t") == 0 || strcmp(a, "--total") == 0) show_total = true;
-        else if (strcmp(a, "-w") == 0 || strcmp(a, "--wide") == 0)  wide = true;
-        else if (strcmp(a, "-v") == 0 || strcmp(a, "--committed") == 0) committed = true;
-        else if (strcmp(a, "-l") == 0 || strcmp(a, "--lohi") == 0) {} // ignored on Windows
-        else if ((strcmp(a, "-s") == 0 || strcmp(a, "--seconds") == 0) && i+1 < argc)
+        else if (strcmp(a, "--bytes") == 0) unit = BYTES;
+        else if (strcmp(a, "--kilo") == 0)  unit = KILO;
+        else if (strcmp(a, "--mega") == 0)  unit = MEGA;
+        else if (strcmp(a, "--giga") == 0)  unit = GIGA;
+        else if (strcmp(a, "--tera") == 0)  unit = TERA;
+        else if (strcmp(a, "--peta") == 0)  unit = PETA;
+        else if (strcmp(a, "--human") == 0) unit = HUMAN;
+        else if (strcmp(a, "--si") == 0)    si = true;
+        else if (strcmp(a, "--total") == 0) show_total = true;
+        else if (strcmp(a, "--wide") == 0)  wide = true;
+        else if (strcmp(a, "--committed") == 0) committed = true;
+        else if (strcmp(a, "--lohi") == 0) {} // ignored on Windows
+        else if (strcmp(a, "--seconds") == 0 && i+1 < argc)
             interval = atof(argv[++i]);
-        else if ((strcmp(a, "-c") == 0 || strcmp(a, "--count") == 0) && i+1 < argc)
+        else if (strcmp(a, "--count") == 0 && i+1 < argc)
             count = atoi(argv[++i]);
-        else if (a[0] == '-' && (a[1] == 's' || a[1] == 'c') && strlen(a) > 2) {
-            // -s3 or -c3 forms
-            if (a[1] == 's') interval = atof(a+2);
-            else count = atoi(a+2);
+        else if (a[0] == '-' && a[1] != '-') {
+            // Handle combined short flags: -ht, -gw, etc.
+            bool err = false;
+            for (int j = 1; a[j] && !err; j++) {
+                switch (a[j]) {
+                    case 'b': unit = BYTES; break;
+                    case 'k': unit = KILO; break;
+                    case 'm': unit = MEGA; break;
+                    case 'g': unit = GIGA; break;
+                    case 'h': unit = HUMAN; break;
+                    case 't': show_total = true; break;
+                    case 'w': wide = true; break;
+                    case 'v': committed = true; break;
+                    case 'l': break; // ignored on Windows
+                    case 's':
+                        if (a[j+1]) { interval = atof(a+j+1); j=(int)strlen(a)-1; }
+                        else if (i+1 < argc) interval = atof(argv[++i]);
+                        break;
+                    case 'c':
+                        if (a[j+1]) { count = atoi(a+j+1); j=(int)strlen(a)-1; }
+                        else if (i+1 < argc) count = atoi(argv[++i]);
+                        break;
+                    default:
+                        fprintf(stderr, "free: invalid option -- '%c'\n", a[j]);
+                        fprintf(stderr, "Try 'free --help' for more information.\n");
+                        err = true;
+                }
+            }
+            if (err) return 1;
         }
         else {
             fprintf(stderr, "free: invalid option '%s'\n", a);

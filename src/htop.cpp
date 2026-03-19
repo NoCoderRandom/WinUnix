@@ -233,6 +233,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Set console to UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
     set_vt_mode();
 
     // Get terminal size
@@ -348,8 +352,10 @@ int main(int argc, char* argv[]) {
         unsigned long long used_phys  = total_phys - free_phys;
         unsigned long long total_swap = ms.ullTotalPageFile > ms.ullTotalPhys ?
                                         ms.ullTotalPageFile - ms.ullTotalPhys : 0;
-        unsigned long long used_swap  = total_swap > ms.ullAvailPageFile ?
-                                        total_swap - ms.ullAvailPageFile : 0;
+        unsigned long long free_swap  = ms.ullAvailPageFile > free_phys ?
+                                        ms.ullAvailPageFile - free_phys : 0;
+        if (free_swap > total_swap) free_swap = total_swap;
+        unsigned long long used_swap  = total_swap - free_swap;
 
         // Draw
         printf("\033[H"); // cursor home
