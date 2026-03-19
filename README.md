@@ -44,7 +44,7 @@ All tools accept the same flags as their Linux counterparts.
 
 ## Installation (from release)
 
-**1. Download** `WinUnix-v1.0.zip` from the [Releases](../../releases/latest) page.
+**1. Download** `WinUnix-v1.1.zip` from the [Releases](../../releases/latest) page.
 
 **2. Create a tools folder and extract:**
 ```cmd
